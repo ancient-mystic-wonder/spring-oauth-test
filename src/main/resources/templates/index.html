@@ -20,11 +20,12 @@
     Logged in as: <span ng-bind="home.user"></span>
 </div>
 
+<script type="text/javascript" src="/webjars/angularjs/angular.min.js"></script>
 <script type="text/javascript">
     angular.module("app", []).controller("home", function($http) {
         var self = this;
         $http.get("/user")
-            .success(fuction(data) {
+            .success(function(data) {
                 self.user = data.userAuthentication.details.name;
                 self.authenticated = true;
             })
