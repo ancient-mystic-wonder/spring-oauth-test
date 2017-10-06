@@ -12,17 +12,21 @@
     <script type="text/javascript" src="/webjars/bootstrap/js/bootstrap.min.js"></script>
 </head>
 <body ng-app="app" ng-controller="home as home">
+
 <h1>Demo</h1>
+
 <div class="container" ng-show="!home.authenticated">
     Login with: <a href="/login">Facebook</a>
 </div>
+
 <div class="container" ng-show="home.authenticated">
     Logged in as: <span ng-bind="home.user"></span>
+    <button ng-click="home.logout()">Logout</button>
 </div>
 
 <script type="text/javascript" src="/webjars/angularjs/angular.min.js"></script>
 <script type="text/javascript">
-    angular.module("app", []).controller("home", function($http) {
+    angular.module("app", []).controller("home", function($http, $location) {
         var self = this;
         $http.get("/user")
             .success(function(data) {
@@ -33,6 +37,18 @@
                 self.user = "N/A";
                 self.authenticated = false;
             });
+
+        self.logout = function() {
+            $http.post('/logout', {})
+                .success(function() {
+                    self.authenticated = false;
+                    $location.path('/oauth');
+                })
+                .error(function() {
+                    console.log('Logout failed');
+                    self.authenticated = false;
+                });
+        };
     });
 </script>
 
