@@ -23,6 +23,10 @@
     Login with: <a href="/login/github">Github</a>
 </div>
 
+<div class="container" ng-show="!home.authenticated">
+    Login with: <a href="/login/reddit">Reddit</a>
+</div>
+
 <div class="container" ng-show="home.authenticated">
     Logged in as: <span ng-bind="home.user"></span>
     <button ng-click="home.logout()">Logout</button>

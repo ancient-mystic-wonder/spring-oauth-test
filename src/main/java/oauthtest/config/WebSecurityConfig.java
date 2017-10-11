@@ -15,7 +15,12 @@ import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.filter.OAuth2ClientAuthenticationProcessingFilter;
 import org.springframework.security.oauth2.client.filter.OAuth2ClientContextFilter;
+import org.springframework.security.oauth2.client.token.AccessTokenProvider;
+import org.springframework.security.oauth2.client.token.AccessTokenProviderChain;
+import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
+import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitAccessTokenProvider;
+import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableOAuth2Client;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -24,14 +29,12 @@ import org.springframework.web.filter.CompositeFilter;
 import javax.servlet.Filter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
 @EnableOAuth2Client
-@PropertySources({
-        @PropertySource("classpath:config/facebook-secret.properties"),
-        @PropertySource("classpath:config/github-secret.properties")
-})
+@PropertySource("classpath:config/oauth-secret.properties")
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
@@ -72,6 +75,21 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         githubFilter.setTokenServices(tokenServices);
         filters.add(githubFilter);
 
+        OAuth2ClientAuthenticationProcessingFilter redditFilter = new OAuth2ClientAuthenticationProcessingFilter("/login/reddit");
+        OAuth2RestTemplate redditTemplate = new OAuth2RestTemplate(reddit(), oauth2ClientContext);
+        redditTemplate.setAccessTokenProvider(new AccessTokenProviderChain(
+                Arrays.<AccessTokenProvider> asList(
+                        new RedditAuthorizationCodeAccessTokenProvider(),
+                        new ImplicitAccessTokenProvider(),
+                        new ResourceOwnerPasswordAccessTokenProvider(),
+                        new ClientCredentialsAccessTokenProvider())
+        ));
+        redditFilter.setRestTemplate(redditTemplate);
+        tokenServices = new UserInfoTokenServices(redditResource().getUserInfoUri(), reddit().getClientId());
+        tokenServices.setRestTemplate(redditTemplate);
+        redditFilter.setTokenServices(tokenServices);
+        filters.add(redditFilter);
+
         compositeFilter.setFilters(filters);
 
         return compositeFilter;
@@ -98,6 +116,18 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     @ConfigurationProperties("github.resource")
     public ResourceServerProperties githubResource() {
+        return new ResourceServerProperties();
+    }
+
+    @Bean
+    @ConfigurationProperties("reddit.client")
+    public AuthorizationCodeResourceDetails reddit() {
+        return new AuthorizationCodeResourceDetails();
+    }
+
+    @Bean
+    @ConfigurationProperties("reddit.resource")
+    public ResourceServerProperties redditResource() {
         return new ResourceServerProperties();
     }
 

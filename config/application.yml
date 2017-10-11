@@ -15,3 +15,8 @@ github:
     clientAuthenticationScheme: form
   resource:
     userInfoUri: https://api.github.com/user
+
+reddit:
+  client:
+    accessTokenUri: https://www.reddit.com/api/v1/access_token
+    userAuthorizationUri: https://www.reddit.com/api/v1/authorize
