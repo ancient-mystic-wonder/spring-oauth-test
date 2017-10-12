@@ -20,3 +20,6 @@ reddit:
   client:
     accessTokenUri: https://www.reddit.com/api/v1/access_token
     userAuthorizationUri: https://www.reddit.com/api/v1/authorize
+    scope: identity
+  resource:
+    userInfoUri: https://oauth.reddit.com/api/v1/me

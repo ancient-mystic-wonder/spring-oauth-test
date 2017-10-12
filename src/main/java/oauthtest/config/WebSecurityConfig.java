@@ -1,6 +1,9 @@
 package oauthtest.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.PrincipalExtractor;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.ResourceServerProperties;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.UserInfoTokenServices;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -9,7 +12,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.PropertySources;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.client.ClientHttpRequest;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
@@ -18,6 +25,7 @@ import org.springframework.security.oauth2.client.filter.OAuth2ClientContextFilt
 import org.springframework.security.oauth2.client.token.AccessTokenProvider;
 import org.springframework.security.oauth2.client.token.AccessTokenProviderChain;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsAccessTokenProvider;
+import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
@@ -28,9 +36,12 @@ import org.springframework.web.filter.CompositeFilter;
 
 import javax.servlet.Filter;
 
+import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 @EnableOAuth2Client
@@ -41,11 +52,16 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     OAuth2ClientContext oauth2ClientContext;
 
     @Override
+    public void configure(WebSecurity web) throws Exception {
+        web.debug(true);
+    }
+
+    @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .antMatcher("/**")
                 .authorizeRequests()
-                .antMatchers("/", "/login**", "/webjars/**")
+                .antMatchers("/", "/login**", "/webjars/**", "/user")
                 .permitAll()
                 .anyRequest()
                 .authenticated()
@@ -80,10 +96,19 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         redditTemplate.setAccessTokenProvider(new AccessTokenProviderChain(
                 Arrays.<AccessTokenProvider> asList(
                         new RedditAuthorizationCodeAccessTokenProvider(),
-                        new ImplicitAccessTokenProvider(),
-                        new ResourceOwnerPasswordAccessTokenProvider(),
-                        new ClientCredentialsAccessTokenProvider())
+                        new AuthorizationCodeAccessTokenProvider())
         ));
+
+        redditTemplate.getInterceptors().add(new LoggingRequestInterceptor());
+        redditTemplate.setRequestFactory(new SimpleClientHttpRequestFactory() {
+            @Override
+            public ClientHttpRequest createRequest(URI uri, HttpMethod httpMethod) throws IOException {
+                ClientHttpRequest request = super.createRequest(uri, httpMethod);
+                //<platform>:<app ID>:<version string> (by /u/<reddit username>
+                request.getHeaders().add("User-Agent", "web:oauthtest:v0.0.1 (by /u/PigExterminator)");
+                return request;
+            }
+        });
         redditFilter.setRestTemplate(redditTemplate);
         tokenServices = new UserInfoTokenServices(redditResource().getUserInfoUri(), reddit().getClientId());
         tokenServices.setRestTemplate(redditTemplate);

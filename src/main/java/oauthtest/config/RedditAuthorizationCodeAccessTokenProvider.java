@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.TreeMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.client.filter.state.DefaultStateKeyGenerator;
@@ -18,18 +20,24 @@ import org.springframework.security.oauth2.client.token.grant.code.Authorization
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
+import org.springframework.util.Base64Utils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 public class RedditAuthorizationCodeAccessTokenProvider extends AuthorizationCodeAccessTokenProvider implements Serializable {
 
+    final static Logger log = LoggerFactory.getLogger(RedditAuthorizationCodeAccessTokenProvider.class);
+
     private static final long serialVersionUID = 3822611002661972274L;
 
     private final StateKeyGenerator stateKeyGenerator = new DefaultStateKeyGenerator();
 
+    private OAuth2ProtectedResourceDetails details;
+
     @Override
     public OAuth2AccessToken obtainAccessToken(final OAuth2ProtectedResourceDetails details, final AccessTokenRequest request) throws UserRedirectRequiredException, UserApprovalRequiredException, AccessDeniedException, OAuth2AccessDeniedException {
         final AuthorizationCodeResourceDetails resource = (AuthorizationCodeResourceDetails) details;
+        this.details = details;
 
         if (request.getAuthorizationCode() == null) {
             if (request.getStateKey() == null) {
@@ -37,11 +45,27 @@ public class RedditAuthorizationCodeAccessTokenProvider extends AuthorizationCod
             }
             obtainAuthorizationCode(resource, request);
         }
-        return retrieveToken(request, resource, getParametersForTokenRequest(resource, request), getHeadersForTokenRequest(request));
+        try {
+            OAuth2AccessToken accessToken = retrieveToken(request, resource, getParametersForTokenRequest(resource, request), getHeadersForTokenRequest(request));
+            log.debug("ACCESS TOKEN OBTAINED " + accessToken.getValue());
+            return accessToken;
+        }
+        catch (OAuth2AccessDeniedException e) {
+            log.debug("ACCESS TOKEN ERROR ", e);
+            throw e;
+        }
     }
 
     private HttpHeaders getHeadersForTokenRequest(final AccessTokenRequest request) {
         final HttpHeaders headers = new HttpHeaders();
+//        String authHeader = "Basic " +
+//                Base64Utils.encodeToString((details.getClientId() + ":" + details.getClientSecret()).getBytes());
+//        headers.add("Authorization", authHeader);
+//        log.debug(authHeader);
+//        headers.add("Content-Type", "application/x-www-form-urlencoded");
+
+        headers.set("User-Agent", "web:oauthtest:v0.0.1 (by /u/PigExterminator)");
+
         return headers;
     }
 
@@ -76,6 +100,7 @@ public class RedditAuthorizationCodeAccessTokenProvider extends AuthorizationCod
         requestParameters.put("response_type", "code");
         requestParameters.put("client_id", resource.getClientId());
         requestParameters.put("duration", "permanent");
+        requestParameters.put("scope", "identity");
 
         final String redirectUri = resource.getRedirectUri(request);
         if (redirectUri != null) {
