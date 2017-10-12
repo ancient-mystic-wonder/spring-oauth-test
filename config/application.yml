@@ -23,3 +23,11 @@ reddit:
     scope: identity
   resource:
     userInfoUri: https://oauth.reddit.com/api/v1/me
+
+logging:
+  level:
+    org:
+      springframework:
+        web: ERROR
+    oauthtest:
+      config: DEBUG
