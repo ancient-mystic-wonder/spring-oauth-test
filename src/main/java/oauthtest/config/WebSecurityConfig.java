@@ -3,6 +3,7 @@ package oauthtest.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.FixedPrincipalExtractor;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.PrincipalExtractor;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.ResourceServerProperties;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.UserInfoTokenServices;
@@ -30,6 +31,7 @@ import org.springframework.security.oauth2.client.token.grant.code.Authorization
 import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableOAuth2Client;
+import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.filter.CompositeFilter;
@@ -71,35 +73,50 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     private Filter ssoFilter() {
+        List<Filter> filters = new ArrayList<Filter>();
+        filters.add(createFacebookOauthFilter());
+        filters.add(createGithubOauthFilter());
+        filters.add(createRedditOauthFilter());
 
         CompositeFilter compositeFilter = new CompositeFilter();
-        List<Filter> filters = new ArrayList<Filter>();
+        compositeFilter.setFilters(filters);
 
-        OAuth2ClientAuthenticationProcessingFilter facebookFilter = new OAuth2ClientAuthenticationProcessingFilter("/login/facebook");
+        return compositeFilter;
+    }
+
+    private Filter createFacebookOauthFilter() {
         OAuth2RestTemplate restTemplate = new OAuth2RestTemplate(facebook(), oauth2ClientContext);
-        facebookFilter.setRestTemplate(restTemplate);
+
         UserInfoTokenServices tokenServices = new UserInfoTokenServices(facebookResource().getUserInfoUri(), facebook().getClientId());
         tokenServices.setRestTemplate(restTemplate);
+
+        OAuth2ClientAuthenticationProcessingFilter facebookFilter = new OAuth2ClientAuthenticationProcessingFilter("/login/facebook");
+        facebookFilter.setRestTemplate(restTemplate);
         facebookFilter.setTokenServices(tokenServices);
-        filters.add(facebookFilter);
+
+        return facebookFilter;
+    }
+
+    private Filter createGithubOauthFilter() {
+        OAuth2RestTemplate githubTemplate = new OAuth2RestTemplate(github(), oauth2ClientContext);
+
+        UserInfoTokenServices tokenServices = new UserInfoTokenServices(githubResource().getUserInfoUri(), github().getClientId());
+        tokenServices.setRestTemplate(githubTemplate);
 
         OAuth2ClientAuthenticationProcessingFilter githubFilter = new OAuth2ClientAuthenticationProcessingFilter("/login/github");
-        OAuth2RestTemplate githubTemplate = new OAuth2RestTemplate(github(), oauth2ClientContext);
         githubFilter.setRestTemplate(githubTemplate);
-        tokenServices = new UserInfoTokenServices(githubResource().getUserInfoUri(), github().getClientId());
-        tokenServices.setRestTemplate(githubTemplate);
         githubFilter.setTokenServices(tokenServices);
-        filters.add(githubFilter);
 
-        OAuth2ClientAuthenticationProcessingFilter redditFilter = new OAuth2ClientAuthenticationProcessingFilter("/login/reddit");
+        return githubFilter;
+    }
+
+    private Filter createRedditOauthFilter() {
         OAuth2RestTemplate redditTemplate = new OAuth2RestTemplate(reddit(), oauth2ClientContext);
         redditTemplate.setAccessTokenProvider(new AccessTokenProviderChain(
                 Arrays.<AccessTokenProvider> asList(
                         new RedditAuthorizationCodeAccessTokenProvider(),
                         new AuthorizationCodeAccessTokenProvider())
         ));
-
-        redditTemplate.getInterceptors().add(new LoggingRequestInterceptor());
         redditTemplate.setRequestFactory(new SimpleClientHttpRequestFactory() {
             @Override
             public ClientHttpRequest createRequest(URI uri, HttpMethod httpMethod) throws IOException {
@@ -109,15 +126,17 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 return request;
             }
         });
+        // uncomment for debug only, it messes up the response passed to UserInfoTokenServices for some reason
+        //redditTemplate.getInterceptors().add(new LoggingRequestInterceptor());
+
+        UserInfoTokenServices redditTokenServices = new UserInfoTokenServices(redditResource().getUserInfoUri(), reddit().getClientId());
+        redditTokenServices.setRestTemplate(redditTemplate);
+
+        OAuth2ClientAuthenticationProcessingFilter redditFilter = new OAuth2ClientAuthenticationProcessingFilter("/login/reddit");
         redditFilter.setRestTemplate(redditTemplate);
-        tokenServices = new UserInfoTokenServices(redditResource().getUserInfoUri(), reddit().getClientId());
-        tokenServices.setRestTemplate(redditTemplate);
-        redditFilter.setTokenServices(tokenServices);
-        filters.add(redditFilter);
+        redditFilter.setTokenServices(redditTokenServices);
 
-        compositeFilter.setFilters(filters);
-
-        return compositeFilter;
+        return redditFilter;
     }
 
     @Bean
