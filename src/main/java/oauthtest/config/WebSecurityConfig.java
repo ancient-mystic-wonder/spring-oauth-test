@@ -1,10 +1,6 @@
 package oauthtest.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.oauth2.resource.FixedPrincipalExtractor;
-import org.springframework.boot.autoconfigure.security.oauth2.resource.PrincipalExtractor;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.ResourceServerProperties;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.UserInfoTokenServices;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -12,7 +8,6 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.context.annotation.PropertySources;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -25,25 +20,19 @@ import org.springframework.security.oauth2.client.filter.OAuth2ClientAuthenticat
 import org.springframework.security.oauth2.client.filter.OAuth2ClientContextFilter;
 import org.springframework.security.oauth2.client.token.AccessTokenProvider;
 import org.springframework.security.oauth2.client.token.AccessTokenProviderChain;
-import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitAccessTokenProvider;
-import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableOAuth2Client;
-import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.filter.CompositeFilter;
 
 import javax.servlet.Filter;
-
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 @Configuration
 @EnableOAuth2Client
