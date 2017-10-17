@@ -27,7 +27,7 @@
     Login with: <a href="/login/reddit">Reddit</a>
 </div>
 
-<div class="container">
+<div class="container" ng-show="home.authenticated">
     Logged in as: <span ng-bind="home.user"></span>
     <button ng-click="home.logout()">Logout</button>
 </div>
@@ -39,7 +39,7 @@
         $http.get("/user")
             .success(function(data) {
                 console.log(data);
-                self.user = data.userAuthentication.details.name;
+                self.user = data.name;
                 self.authenticated = true;
             })
             .error(function(data) {
