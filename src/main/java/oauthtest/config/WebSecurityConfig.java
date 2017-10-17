@@ -114,16 +114,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         SimpleClientHttpRequestFactory requestFactory = redditRequestFactory();
 
         AuthorizationCodeAccessTokenProvider provider = new AuthorizationCodeAccessTokenProvider();
-        // Uncomment for impl of permanent access token
-        // AuthorizationCodeAccessTokenProvider provider = new RedditAuthorizationCodeAccessTokenProvider();
         provider.setRequestFactory(requestFactory);
 
         OAuth2RestTemplate redditTemplate = new OAuth2RestTemplate(reddit(), oauth2ClientContext);
         redditTemplate.setAccessTokenProvider(new AccessTokenProviderChain(Arrays.<AccessTokenProvider> asList(provider)));
         redditTemplate.setRequestFactory(requestFactory);
-
-        // uncomment for debug only, it messes up the response passed to UserInfoTokenServices for some reason
-        // redditTemplate.getInterceptors().add(new LoggingRequestInterceptor());
 
         UserInfoTokenServices redditTokenServices = new UserInfoTokenServices(redditResource().getUserInfoUri(), reddit().getClientId());
         redditTokenServices.setRestTemplate(redditTemplate);
