@@ -32,12 +32,9 @@ public class RedditAuthorizationCodeAccessTokenProvider extends AuthorizationCod
 
     private final StateKeyGenerator stateKeyGenerator = new DefaultStateKeyGenerator();
 
-    private OAuth2ProtectedResourceDetails details;
-
     @Override
     public OAuth2AccessToken obtainAccessToken(final OAuth2ProtectedResourceDetails details, final AccessTokenRequest request) throws UserRedirectRequiredException, UserApprovalRequiredException, AccessDeniedException, OAuth2AccessDeniedException {
         final AuthorizationCodeResourceDetails resource = (AuthorizationCodeResourceDetails) details;
-        this.details = details;
 
         if (request.getAuthorizationCode() == null) {
             if (request.getStateKey() == null) {
@@ -45,27 +42,11 @@ public class RedditAuthorizationCodeAccessTokenProvider extends AuthorizationCod
             }
             obtainAuthorizationCode(resource, request);
         }
-        try {
-            OAuth2AccessToken accessToken = retrieveToken(request, resource, getParametersForTokenRequest(resource, request), getHeadersForTokenRequest(request));
-            log.debug("ACCESS TOKEN OBTAINED " + accessToken.getValue());
-            return accessToken;
-        }
-        catch (OAuth2AccessDeniedException e) {
-            log.debug("ACCESS TOKEN ERROR ", e);
-            throw e;
-        }
+        return retrieveToken(request, resource, getParametersForTokenRequest(resource, request), getHeadersForTokenRequest(request));
     }
 
     private HttpHeaders getHeadersForTokenRequest(final AccessTokenRequest request) {
         final HttpHeaders headers = new HttpHeaders();
-//        String authHeader = "Basic " +
-//                Base64Utils.encodeToString((details.getClientId() + ":" + details.getClientSecret()).getBytes());
-//        headers.add("Authorization", authHeader);
-//        log.debug(authHeader);
-//        headers.add("Content-Type", "application/x-www-form-urlencoded");
-
-        headers.set("User-Agent", "web:oauthtest:v0.0.1 (by /u/PigExterminator)");
-
         return headers;
     }
 

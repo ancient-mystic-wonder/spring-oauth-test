@@ -111,23 +111,19 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     private Filter createRedditOauthFilter() {
+        SimpleClientHttpRequestFactory requestFactory = redditRequestFactory();
+
+        AuthorizationCodeAccessTokenProvider provider = new AuthorizationCodeAccessTokenProvider();
+        // Uncomment for impl of permanent access token
+        // AuthorizationCodeAccessTokenProvider provider = new RedditAuthorizationCodeAccessTokenProvider();
+        provider.setRequestFactory(requestFactory);
+
         OAuth2RestTemplate redditTemplate = new OAuth2RestTemplate(reddit(), oauth2ClientContext);
-        redditTemplate.setAccessTokenProvider(new AccessTokenProviderChain(
-                Arrays.<AccessTokenProvider> asList(
-                        new RedditAuthorizationCodeAccessTokenProvider(),
-                        new AuthorizationCodeAccessTokenProvider())
-        ));
-        redditTemplate.setRequestFactory(new SimpleClientHttpRequestFactory() {
-            @Override
-            public ClientHttpRequest createRequest(URI uri, HttpMethod httpMethod) throws IOException {
-                ClientHttpRequest request = super.createRequest(uri, httpMethod);
-                //<platform>:<app ID>:<version string> (by /u/<reddit username>
-                request.getHeaders().add("User-Agent", "web:oauthtest:v0.0.1 (by /u/PigExterminator)");
-                return request;
-            }
-        });
+        redditTemplate.setAccessTokenProvider(new AccessTokenProviderChain(Arrays.<AccessTokenProvider> asList(provider)));
+        redditTemplate.setRequestFactory(requestFactory);
+
         // uncomment for debug only, it messes up the response passed to UserInfoTokenServices for some reason
-        //redditTemplate.getInterceptors().add(new LoggingRequestInterceptor());
+        // redditTemplate.getInterceptors().add(new LoggingRequestInterceptor());
 
         UserInfoTokenServices redditTokenServices = new UserInfoTokenServices(redditResource().getUserInfoUri(), reddit().getClientId());
         redditTokenServices.setRestTemplate(redditTemplate);
@@ -137,6 +133,18 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         redditFilter.setTokenServices(redditTokenServices);
 
         return redditFilter;
+    }
+
+    private SimpleClientHttpRequestFactory redditRequestFactory() {
+        return new SimpleClientHttpRequestFactory() {
+            @Override
+            public ClientHttpRequest createRequest(URI uri, HttpMethod httpMethod) throws IOException {
+                ClientHttpRequest request = super.createRequest(uri, httpMethod);
+                //<platform>:<app ID>:<version string> (by /u/<reddit username>
+                request.getHeaders().add("User-Agent", "web:oauthtest:v0.0.1 (by /u/PigExterminator)");
+                return request;
+            }
+        };
     }
 
     @Bean
