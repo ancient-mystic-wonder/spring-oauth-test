@@ -1,6 +1,9 @@
 package oauthtest.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.PrincipalExtractor;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.ResourceServerProperties;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.UserInfoTokenServices;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -33,11 +36,14 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 @EnableOAuth2Client
 @PropertySource("classpath:config/oauth-secret.properties")
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(WebSecurityConfig.class);
 
     @Autowired
     OAuth2ClientContext oauth2ClientContext;
@@ -111,6 +117,12 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
         UserInfoTokenServices redditTokenServices = new UserInfoTokenServices(redditResource().getUserInfoUri(), reddit().getClientId());
         redditTokenServices.setRestTemplate(redditTemplate);
+        redditTokenServices.setPrincipalExtractor(new PrincipalExtractor() {
+            @Override
+            public Object extractPrincipal(Map<String, Object> map) {
+                return map.get("name");
+            }
+        });
 
         OAuth2ClientAuthenticationProcessingFilter redditFilter = new OAuth2ClientAuthenticationProcessingFilter("/login/reddit");
         redditFilter.setRestTemplate(redditTemplate);
