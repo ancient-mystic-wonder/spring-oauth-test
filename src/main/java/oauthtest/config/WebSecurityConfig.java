@@ -117,6 +117,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
         UserInfoTokenServices redditTokenServices = new UserInfoTokenServices(redditResource().getUserInfoUri(), reddit().getClientId());
         redditTokenServices.setRestTemplate(redditTemplate);
+
+        // need this because default principal extractor (FixedPrincipalExtractor) gets the id first
         redditTokenServices.setPrincipalExtractor(new PrincipalExtractor() {
             @Override
             public Object extractPrincipal(Map<String, Object> map) {
