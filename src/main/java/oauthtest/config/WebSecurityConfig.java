@@ -40,7 +40,6 @@ import java.util.Map;
 
 @Configuration
 @EnableOAuth2Client
-@PropertySource("classpath:config/oauth-secret.properties")
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WebSecurityConfig.class);
