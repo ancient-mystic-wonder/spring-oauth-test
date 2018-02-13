@@ -2,6 +2,14 @@ spring:
   profiles:
     include: secret
 
+security:
+  oauth2:
+    client:
+      client-id: acme
+      client-secret: acmesecret
+      scope: read,write
+      auto-approve-scopes: '.*'
+
 facebook:
   client:
     accessTokenUri: https://graph.facebook.com/oauth/access_token
